@@ -116,7 +116,7 @@ export default function PhotoBooth() {
 
     // Set canvas dimensions (vertical strip)
     const photoWidth = 600;
-    const aspectRatio = 2/3;
+    const aspectRatio = 9/16;
     const photoHeight = Math.round(photoWidth * aspectRatio);
     const padding = 20;
     const stripWidth = photoWidth + padding * 2;
