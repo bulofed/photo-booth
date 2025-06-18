@@ -19,13 +19,13 @@ export default function CameraView({
       {!isCameraOn ? (
         <button
           onClick={startCamera}
-          className='mx-auto my-8 px-8 py-4 bg-blue-700 text-white rounded-full text-xl font-medium hover:bg-blue-800 hover:shadow-md transition-all flex items-center gap-2'
+          className='mx-auto my-8 px-8 py-4 bg-indigo-500 text-white rounded-full text-xl font-medium hover:bg-indigo-600 transition-all flex items-center gap-2'
         >
           <FaCamera /> Start Camera
         </button>
       ) : (
         <>
-          <div className='relative w-full max-w-4xl mx-auto rounded-xl overflow-hidden shadow-lg'>
+          <div className='relative w-full max-w-4xl mx-auto rounded-lg border border-neutral-300 overflow-hidden'>
             <video
               ref={videoRef}
               autoPlay
@@ -49,7 +49,7 @@ export default function CameraView({
             <button
               onClick={() => takeMultiplePhotos(stripRows * stripCols, 0)}
               disabled={isCountingDown}
-              className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all disabled:opcaity-70 disabled:cursor-not-allowed'
+              className='px-6 py-3 bg-white text-indigo-500 border-2 border-indigo-500 rounded-full flex items-center gap-2 hover:bg-indigo-500 hover:text-white transition-all disabled:opcaity-70 disabled:cursor-not-allowed'
             >
               {isCountingDown ? (
                 <FaSpinner className='animate-spin' />
@@ -60,14 +60,14 @@ export default function CameraView({
             </button>
             <button
               onClick={() => setFlash(!flash)}
-              className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all'
+              className='px-6 py-3 bg-white text-indigo-500 border-2 border-indigo-500 rounded-full flex items-center gap-2 hover:bg-indigo-500 hover:text-white transition-all'
             >
               {flash ? <MdFlashOn /> : <MdFlashOff />}
               Flash
             </button>
             <button
               onClick={stopCamera}
-              className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all'
+              className='px-6 py-3 bg-white text-indigo-500 border-2 border-indigo-500 rounded-full flex items-center gap-2 hover:bg-indigo-500 hover:text-white transition-all'
             >
               <FaRedo /> Stop Camera
             </button>

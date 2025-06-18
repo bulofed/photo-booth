@@ -203,11 +203,12 @@ export default function PhotoBooth() {
   }, [isCameraOn]);
 
   return (
-    <div className='flex flex-col min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 text-gray-800'>
-      <header className='text-center p-8 bg-white/80 shadow-md'>
-        <h1 className='text-4xl font-bold text-blue-700 m-0'>Photo Booth</h1>
-        <p className='text-gray-600 mt-2'>Capture your moments with style</p>
-      </header>
+    <div className='flex flex-col min-h-screen bg-neutral-100 text-gray-800'>
+      <nav className='w-full bg-indigo-500 flex'>
+        <div className='mx-auto max-w-6xl w-full py-3 px-5 flex'>
+          <h1 className='text-4xl font-bold text-white max-w-2xl'>FotoFoto</h1>
+        </div>
+      </nav>
       <main className='flex-1 p-8 max-w-6xl mx-auto w-full'>
         <div className="flex flex-col md:flex-row gap-8 items-start justify-center w-full">
           {/* Camera View */}
@@ -229,7 +230,7 @@ export default function PhotoBooth() {
             <canvas ref={stripCanvasRef} className='hidden' />
           </div>
           {/* Options Panel */}
-          <div className="w-full md:w-96 flex flex-col gap-6 bg-white/80 rounded-xl shadow-lg p-6">
+          <div className="w-full md:w-96 flex flex-col gap-6 bg-white rounded-lg border border-neutral-300 p-6">
             {error && (
               <div className='p-4 bg-red-100 text-red-800 rounded mb-2 text-center'>
                 {error}
@@ -242,7 +243,6 @@ export default function PhotoBooth() {
               setStripCols={setStripCols}
             />
             <CustomTextInput customText={customText} setCustomText={setCustomText} />
-            {/* BackgroundSelector can be added here in the future */}
           </div>
         </div>
         <PhotoStripGallery

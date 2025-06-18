@@ -1,14 +1,13 @@
 export default function CustomTextInput({ customText, setCustomText }) {
   return (
-    <div className="mb-6 flex flex-col items-center">
-      <label className="mb-2 font-medium">Add custom text for your strip:</label>
+    <div className="flex-1 flex flex-col gap-y-2">
+      <label className="text-xs text-neutral-500 uppercase font-black tracking-wider leading-none">Text</label>
       <input
         type="text"
         value={customText}
         onChange={e => setCustomText(e.target.value)}
         maxLength={40}
-        placeholder="Type your message here"
-        className="border rounded px-3 py-2 w-80 text-lg text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        className="h-8 border border-neutral-300 rounded px-3 py-2 w-full text-base outline-none focus-visible:ring focus-visible:ring-black focus-visible:border-black transition-all"
       />
     </div>
   );

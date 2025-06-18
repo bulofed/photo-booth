@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Photo Booth",
+  title: "FotoFoto | Free Online Photobooth",
   description: ""
 };
 
