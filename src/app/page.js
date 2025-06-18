@@ -1,13 +1,11 @@
 "use client"
 import { useState, useRef, useEffect } from 'react';
-import { FaCamera, FaDownload, FaRedo, FaSpinner } from 'react-icons/fa';
-import { MdFlashOn, MdFlashOff } from 'react-icons/md';
-
-const BACKGROUNDS = [
-];
+import CameraView from './components/CameraView';
+import StripLayoutSelector from './components/StripLayoutSelector';
+import CustomTextInput from './components/CustomTextInput';
+import PhotoStripGallery from './components/PhotoStripGallery';
 
 export default function PhotoBooth() {
-
   const [photos, setPhotos] = useState([]);
   const [photoStrips, setPhotoStrips] = useState([]);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -18,7 +16,6 @@ export default function PhotoBooth() {
   const [stripRows, setStripRows] = useState(3);
   const [stripCols, setStripCols] = useState(1);
 
-  const [backgroundImage, setBackgroundImage] = useState(null);
   const [customText, setCustomText] = useState('');
 
   const videoRef = useRef(null);
@@ -81,7 +78,7 @@ export default function PhotoBooth() {
     setPhotos(prev => [...prev, photoUrl]);
   };
 
-  // Create photo strip when we have 3 photos
+  // Create photo strip when we have enough photos
   useEffect(() => {
     if (photos.length === stripRows * stripCols) {
       createPhotoStrip();
@@ -199,7 +196,7 @@ export default function PhotoBooth() {
 
   // Attach stream to video element when both are ready
   useEffect(() => {
-  if (isCameraOn && videoRef.current && streamRef.current) {
+    if (isCameraOn && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
       videoRef.current.play().catch(e => console.log("Video play error:", e));
     }
@@ -212,175 +209,48 @@ export default function PhotoBooth() {
         <p className='text-gray-600 mt-2'>Capture your moments with style</p>
       </header>
       <main className='flex-1 p-8 max-w-6xl mx-auto w-full'>
-        { backgroundImage && (
-          <div className="mb-6 flex flex-col items-center">
-            <label className="mb-2 font-medium">Choose a background:</label>
-            <div className="flex gap-4 flex-wrap">
-              {BACKGROUNDS.map(bg => (
-                <div
-                  key={bg.name}
-                  className={`w-24 h-16 cursor-pointer border-2 ${backgroundImage === bg.src ? 'border-blue-700' : 'border-gray-300'} rounded-lg overflow-hidden`}
-                  onClick={() => setBackgroundImage(bg.src)}
-                  style={{ backgroundImage: `url(${bg.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                >
-                  {backgroundImage === bg.src && (
-                    <div className='absolute inset-0 bg-blue-700/50 flex items-center justify-center'>
-                      <span className='text-white font-bold'>Selected</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-col md:flex-row gap-8 items-start justify-center w-full">
+          {/* Camera View */}
+          <div className="flex-1 min-w-[320px] max-w-2xl">
+            <CameraView
+              isCameraOn={isCameraOn}
+              isCountingDown={isCountingDown}
+              countDown={countDown}
+              flash={flash}
+              videoRef={videoRef}
+              startCamera={startCamera}
+              stopCamera={stopCamera}
+              takeMultiplePhotos={takeMultiplePhotos}
+              setFlash={setFlash}
+              stripRows={stripRows}
+              stripCols={stripCols}
+            />
+            <canvas ref={canvasRef} className='hidden'/>
+            <canvas ref={stripCanvasRef} className='hidden' />
           </div>
-        )}
-
-        <div className="mb-6 flex flex-col items-center">
-          <label className="mb-2 font-medium">Photo strip layout:</label>
-          <div className="flex gap-4">
-            <div>
-              <label className="mr-2">Rows:</label>
-              <input
-                type="number"
-                min={1}
-                max={6}
-                value={stripRows}
-                onChange={e => setStripRows(Number(e.target.value))}
-                className="border rounded px-2 py-1 w-16 text-center"
-              />
-            </div>
-            <div>
-              <label className="mr-2">Columns:</label>
-              <input
-                type="number"
-                min={1}
-                max={6}
-                value={stripCols}
-                onChange={e => setStripCols(Number(e.target.value))}
-                className="border rounded px-2 py-1 w-16 text-center"
-              />
-            </div>
+          {/* Options Panel */}
+          <div className="w-full md:w-96 flex flex-col gap-6 bg-white/80 rounded-xl shadow-lg p-6">
+            {error && (
+              <div className='p-4 bg-red-100 text-red-800 rounded mb-2 text-center'>
+                {error}
+              </div>
+            )}
+            <StripLayoutSelector
+              stripRows={stripRows}
+              stripCols={stripCols}
+              setStripRows={setStripRows}
+              setStripCols={setStripCols}
+            />
+            <CustomTextInput customText={customText} setCustomText={setCustomText} />
+            {/* BackgroundSelector can be added here in the future */}
           </div>
         </div>
-
-        <div className="mb-6 flex flex-col items-center">
-          <label className="mb-2 font-medium">Add custom text for your strip:</label>
-          <input
-            type="text"
-            value={customText}
-            onChange={e => setCustomText(e.target.value)}
-            maxLength={40}
-            placeholder="Type your message here"
-            className="border rounded px-3 py-2 w-80 text-lg text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-          />
-        </div>
-
-        {error && (
-          <div className='p-4 bg-red-100 text-red-800 rounded mb-4 text-center'>
-            {error}
-          </div>
-        )}
-
-        {!isCameraOn ? (
-          <button
-            onClick={startCamera}
-            className='mx-auto my-8 px-8 py-4 bg-blue-700 text-white rounded-full text-xl font-medium hover:bg-blue-800 hover:shadow-md transition-all flex items-center gap-2'
-          >
-            <FaCamera /> Start Camera
-          </button>
-        ) : (
-          <>
-            <div className='relative w-full max-w-4xl mx-auto rounded-xl overflow-hidden shadow-lg'>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className='w-full bg-black'
-                style={{ transform: 'scaleX(-1)' }}
-              />
-              <canvas ref={canvasRef} className='hidden'/>
-              <canvas ref={stripCanvasRef} className='hidden' />
-
-              {isCountingDown && (
-                <div className='absolute inset-0 bg-black/50 flex justify-center items-center'>
-                  <div className='text-white text-9xl font-bold animate-ping'>
-                    {countDown}
-                  </div>
-                </div>
-              )}
-
-              {flash && (
-                <div className='absolute inset-0 bg-white animate-flash opacity-0' />
-              )}
-            </div>
-
-            <div className='flex justify-center gap-4 my-6 flex-wrap'>
-              <button
-                onClick={() => takeMultiplePhotos(stripRows * stripCols, 0)}
-                disabled={isCountingDown}
-                className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all disabled:opcaity-70 disabled:cursor-not-allowed'
-              >
-                {isCountingDown ? (
-                  <FaSpinner className='animate-spin' />
-                ): (
-                  <FaCamera />
-                )}
-                {isCountingDown ? 'Smile!': 'Take Photo'}
-              </button>
-
-              <button
-                onClick={() => setFlash(!flash)}
-                className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all'
-              >
-                {flash ? <MdFlashOn /> : <MdFlashOff />}
-                Flash
-              </button>
-
-              <button
-                onClick={() => stopCamera()}
-                className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all'
-              >
-                <FaRedo /> Stop Camera
-              </button>
-            </div>
-          </>
-        )}
-
-        {photoStrips.length > 0 && (
-          <section className='mt-12 pt-8 border-t border-gray-300'>
-            <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-2xl font-bold text-blue-700 m-0'>Your Photos Strips</h2>
-              <button
-                onClick={clearStrips}
-                className='px-4 py-2 bg-red-500 text-white rounded flex items-center gap-2 hover:bg-red-400 transition-colors'
-              >
-                <FaRedo /> Clear All
-              </button>
-            </div>
-
-            <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4'>
-              {photoStrips.map((strip, index) => (
-                <div key={index} className='bg-white rounded-xl overflow-hidden shadow-md hover:-translate-y-1 transition-transform'>
-                  <img
-                    src={strip}
-                    alt={`Photo Strip ${index + 1}`}
-                    className='w-full h-auto'
-                  />
-                  <button
-                    onClick={() => downloadStrip(strip)}
-                    className='w-full py-3 bg-blue-700 text-white flex justify-center items-center gap-2 hover:bg-blue-800 transition-colors'
-                  >
-                    <FaDownload /> Download
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <PhotoStripGallery
+          photoStrips={photoStrips}
+          downloadStrip={downloadStrip}
+          clearStrips={clearStrips}
+        />
       </main>
-      <footer className="text-center p-4 bg-white/80 text-gray-600">
-        <p>© {new Date().getFullYear()} Photo Booth</p>
-      </footer>
     </div>
   );
 }
