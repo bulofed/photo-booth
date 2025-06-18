@@ -3,6 +3,9 @@ import { useState, useRef, useEffect } from 'react';
 import { FaCamera, FaDownload, FaRedo, FaSpinner } from 'react-icons/fa';
 import { MdFlashOn, MdFlashOff } from 'react-icons/md';
 
+const BACKGROUNDS = [
+];
+
 export default function PhotoBooth() {
 
   const [photos, setPhotos] = useState([]);
@@ -12,36 +15,19 @@ export default function PhotoBooth() {
   const [countDown, setCountDown] = useState(3);
   const [flash, setFlash] = useState(false);
   const [error, setError] = useState(null);
+  const [stripRows, setStripRows] = useState(3);
+  const [stripCols, setStripCols] = useState(1);
+
+  const [backgroundImage, setBackgroundImage] = useState(null);
+  const [customText, setCustomText] = useState('');
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
   const stripCanvasRef = useRef(null);
 
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log("Photos updated:", photos);
-  }, [photos]);
-
-  useEffect(() => {
-    console.log("Camera on:", isCameraOn);
-  }, [isCameraOn]);
-
-  useEffect(() => {
-    console.log("Counting down:", isCountingDown, "Count:", countDown);
-  }, [isCountingDown, countDown]);
-
-  useEffect(() => {
-    console.log("Flash:", flash);
-  }, [flash]);
-
-  useEffect(() => {
-    if (error) console.log("Error:", error);
-  }, [error]);
-
   // Start camera
   const startCamera = async () => {
-    console.log("startCamera called")
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -55,7 +41,6 @@ export default function PhotoBooth() {
       streamRef.current = stream;
       setIsCameraOn(true);
       setError(null);
-      console.log("Camera started");
     } catch (err) {
       setError('Could not access the camera. Please check permissions.');
       console.log(err);
@@ -64,17 +49,14 @@ export default function PhotoBooth() {
 
   // Stop camera
   const stopCamera = () => {
-    console.log("stopCamera called")
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       setIsCameraOn(false);
-      console.log("Camera stopped")
     }
   };
 
   // Capture photo from video stream
   const capturePhoto = () => {
-    console.log("capturePhoto called");
     if (flash) {
       document.body.style.backgroundColor = 'white';
       setTimeout(() => {
@@ -97,17 +79,15 @@ export default function PhotoBooth() {
 
     const photoUrl = canvas.toDataURL('image/jpeg', 0.95);
     setPhotos(prev => [...prev, photoUrl]);
-    console.log("Photo captured and added to state");
   };
 
   // Create photo strip when we have 3 photos
   useEffect(() => {
-    if (photos.length === 3) {
-      console.log("Creating strip with photos:", photos);
+    if (photos.length === stripRows * stripCols) {
       createPhotoStrip();
       setPhotos([]);
     }
-  }, [photos]);
+  }, [photos, stripRows, stripCols]);
 
   // Create a combined photo strip
   const createPhotoStrip = () => {
@@ -118,9 +98,11 @@ export default function PhotoBooth() {
     const photoWidth = 600;
     const aspectRatio = 9/16;
     const photoHeight = Math.round(photoWidth * aspectRatio);
-    const padding = 20;
-    const stripWidth = photoWidth + padding * 2;
-    const stripHeight = (photoHeight * 3) + (padding * 4);
+    const padding = 30;
+    const bottomMargin = 8 * padding;
+    const fontSize = 32;
+    const stripWidth = (photoWidth * stripCols) + (padding * (stripCols + 1));
+    const stripHeight = (photoHeight * stripRows) + (padding * (stripRows + 1)) + bottomMargin;
 
     canvas.width = stripWidth;
     canvas.height = stripHeight;
@@ -137,11 +119,11 @@ export default function PhotoBooth() {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
-          // Calculate position (centered with padding)
-          const x = padding;
-          const y = padding + (index * (photoHeight + padding));
-          
-          // Draw image with border
+          const row = Math.floor(index / stripCols);
+          const col = index % stripCols;
+          const x = padding + col * (photoWidth + padding);
+          const y = padding + row * (photoHeight + padding);
+
           ctx.fillStyle = '#ddd';
           ctx.fillRect(x - 2, y - 2, photoWidth + 4, photoHeight + 4);
           ctx.drawImage(img, x, y, photoWidth, photoHeight);
@@ -153,6 +135,14 @@ export default function PhotoBooth() {
 
     // When all images are loaded, save the strip
     Promise.all(imageLoadPromises).then(() => {
+      // Add custom text if provided
+      if (customText) {
+        ctx.fillStyle = '#333';
+        ctx.font = `${fontSize}px bold Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(customText, stripWidth / 2, stripHeight - bottomMargin + fontSize);
+      }
+
       const stripUrl = canvas.toDataURL('image/jpeg', 0.9);
       setPhotoStrips(prev => [...prev, stripUrl]);
     });
@@ -203,7 +193,6 @@ export default function PhotoBooth() {
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
-        console.log("Camera cleaned up on unmount");
       }
     };
   }, []);
@@ -211,11 +200,10 @@ export default function PhotoBooth() {
   // Attach stream to video element when both are ready
   useEffect(() => {
   if (isCameraOn && videoRef.current && streamRef.current) {
-    videoRef.current.srcObject = streamRef.current;
-    console.log("Set video srcObject", streamRef.current);
-    videoRef.current.play().catch(e => console.log("Video play error:", e));
-  }
-}, [isCameraOn]);
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(e => console.log("Video play error:", e));
+    }
+  }, [isCameraOn]);
 
   return (
     <div className='flex flex-col min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 text-gray-800'>
@@ -224,6 +212,68 @@ export default function PhotoBooth() {
         <p className='text-gray-600 mt-2'>Capture your moments with style</p>
       </header>
       <main className='flex-1 p-8 max-w-6xl mx-auto w-full'>
+        { backgroundImage && (
+          <div className="mb-6 flex flex-col items-center">
+            <label className="mb-2 font-medium">Choose a background:</label>
+            <div className="flex gap-4 flex-wrap">
+              {BACKGROUNDS.map(bg => (
+                <div
+                  key={bg.name}
+                  className={`w-24 h-16 cursor-pointer border-2 ${backgroundImage === bg.src ? 'border-blue-700' : 'border-gray-300'} rounded-lg overflow-hidden`}
+                  onClick={() => setBackgroundImage(bg.src)}
+                  style={{ backgroundImage: `url(${bg.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                >
+                  {backgroundImage === bg.src && (
+                    <div className='absolute inset-0 bg-blue-700/50 flex items-center justify-center'>
+                      <span className='text-white font-bold'>Selected</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-6 flex flex-col items-center">
+          <label className="mb-2 font-medium">Photo strip layout:</label>
+          <div className="flex gap-4">
+            <div>
+              <label className="mr-2">Rows:</label>
+              <input
+                type="number"
+                min={1}
+                max={6}
+                value={stripRows}
+                onChange={e => setStripRows(Number(e.target.value))}
+                className="border rounded px-2 py-1 w-16 text-center"
+              />
+            </div>
+            <div>
+              <label className="mr-2">Columns:</label>
+              <input
+                type="number"
+                min={1}
+                max={6}
+                value={stripCols}
+                onChange={e => setStripCols(Number(e.target.value))}
+                className="border rounded px-2 py-1 w-16 text-center"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-col items-center">
+          <label className="mb-2 font-medium">Add custom text for your strip:</label>
+          <input
+            type="text"
+            value={customText}
+            onChange={e => setCustomText(e.target.value)}
+            maxLength={40}
+            placeholder="Type your message here"
+            className="border rounded px-3 py-2 w-80 text-lg text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+          />
+        </div>
+
         {error && (
           <div className='p-4 bg-red-100 text-red-800 rounded mb-4 text-center'>
             {error}
@@ -266,7 +316,7 @@ export default function PhotoBooth() {
 
             <div className='flex justify-center gap-4 my-6 flex-wrap'>
               <button
-                onClick={() => takeMultiplePhotos(3, 0)}
+                onClick={() => takeMultiplePhotos(stripRows * stripCols, 0)}
                 disabled={isCountingDown}
                 className='px-6 py-3 bg-white text-blue-700 border-2 border-blue-700 rounded-full flex items-center gap-2 hover:bg-blue-700 hover:text-white transition-all disabled:opcaity-70 disabled:cursor-not-allowed'
               >
@@ -328,6 +378,9 @@ export default function PhotoBooth() {
           </section>
         )}
       </main>
+      <footer className="text-center p-4 bg-white/80 text-gray-600">
+        <p>© {new Date().getFullYear()} Photo Booth</p>
+      </footer>
     </div>
   );
 }
