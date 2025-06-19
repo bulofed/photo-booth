@@ -10,9 +10,7 @@ export default function CameraView({
   startCamera,
   stopCamera,
   takeMultiplePhotos,
-  setFlash,
-  stripRows,
-  stripCols
+  setFlash
 }) {
   return (
     <>
@@ -47,7 +45,7 @@ export default function CameraView({
           </div>
           <div className='flex justify-center gap-4 my-6 flex-wrap'>
             <button
-              onClick={() => takeMultiplePhotos(stripRows * stripCols, 0)}
+              onClick={() => takeMultiplePhotos()}
               disabled={isCountingDown}
               className='px-6 py-3 bg-white text-indigo-500 border-2 border-indigo-500 rounded-full flex items-center gap-2 hover:bg-indigo-500 hover:text-white transition-all disabled:opcaity-70 disabled:cursor-not-allowed'
             >
