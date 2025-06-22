@@ -2,8 +2,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import Header from '../components/Header';
+
 export default function CustomizePage() {
   const router = useRouter();
+
   const [stripUrl, setStripUrl] = useState(null);
 
   useEffect(() => {
@@ -28,11 +31,7 @@ export default function CustomizePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-100 text-gray-800">
-      <nav className='w-full bg-indigo-500 flex'>
-        <div className='mx-auto max-w-6xl w-full py-3 px-8 flex'>
-          <h1 className='text-4xl font-bold text-white max-w-2xl'>Customize Strip</h1>
-        </div>
-      </nav>
+      <Header />
       <main className="flex-1 p-8 max-w-6xl mx-auto w-full flex flex-col items-center">
         <img src={stripUrl} alt="Photo Strip" className="mb-8 rounded shadow-lg max-w-full" />
         <button

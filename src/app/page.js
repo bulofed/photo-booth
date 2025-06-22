@@ -1,9 +1,11 @@
+// page.js
 "use client"
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+
+import Header from './components/Header';
 import CameraView from './components/CameraView';
 import StripLayoutSelector from './components/StripLayoutSelector';
-import CustomTextInput from './components/CustomTextInput';
 
 export default function PhotoBooth() {
 
@@ -24,8 +26,6 @@ export default function PhotoBooth() {
   const [padding, setPadding] = useState(30);
   const [topMargin, setTopMargin] = useState(4 * padding);
   const [bottomMargin, setBottomMargin] = useState(8 * padding);
-
-  const [customText, setCustomText] = useState('');
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -91,103 +91,60 @@ export default function PhotoBooth() {
     return layout.flat().filter(cell => typeof cell === 'number').length;
   }
 
-  // Create photo strip when we have enough photos
-  useEffect(() => {
-    const neededPhotos = countPhotoCells(layout);
-    if (photos.length === neededPhotos && neededPhotos > 0) {
-      createPhotoStrip();
-      setPhotos([]);
-    }
-  }, [photos, layout]);
-
   // Create a combined photo strip
-  const createPhotoStrip = () => {
-    const canvas = stripCanvasRef.current;
-    if (!canvas) return;
-
-    // Set canvas dimensions
-    const photoWidth = 600;
-    const aspectRatio = 9/16;
-    const photoHeight = Math.round(photoWidth * aspectRatio);
-    const fontSize = 32;
-
-    // Calculate max columns in layout
-    const maxCols = Math.max(...layout.map(row => row.length));
-    const stripWidth = (photoWidth * maxCols) + (padding * (maxCols + 1));
-    const stripHeight = (photoHeight * layout.length) + (padding * (layout.length + 1)) + topMargin + bottomMargin;
-
-    canvas.width = stripWidth;
-    canvas.height = stripHeight;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // White background
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, stripWidth, stripHeight);
-
-    // Draw each photo
-    const cellPromises = [];
-    layout.forEach((row, rowIdx) => {
-      row.forEach((cell, colIdx) => {
-        const x = padding + colIdx * (photoWidth + padding);
-        const y = topMargin + padding + rowIdx * (photoHeight + padding);
-
-        if (cell === 'text' && customText) {
-          // Draw text synchronously
-          ctx.fillStyle = '#333';
-          ctx.font = `${fontSize}px bold Arial`;
-          ctx.textAlign = 'center';
-          ctx.fillText(customText, x + photoWidth / 2, y + photoHeight / 2);
-        } else if (typeof cell === 'number' && photos[cell]) {
-          // Draw image asynchronously
-          cellPromises.push(new Promise(resolve => {
-            const img = new window.Image();
-            img.onload = () => {
-              ctx.fillStyle = '#ddd';
-              ctx.fillRect(x - 2, y - 2, photoWidth + 4, photoHeight + 4);
-              ctx.drawImage(img, x, y, photoWidth, photoHeight);
-              resolve();
-            };
-            img.src = photos[cell];
-          }));
-        }
-      });
+  const generateStrip = async (data) => {
+    const response = await fetch('/api/generate-strip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
 
-    // When all images are loaded, save the strip
-    Promise.all(cellPromises).then(() => {
-      const stripUrl = canvas.toDataURL('image/jpeg', 0.9);
-      localStorage.setItem('photoStrip', stripUrl);
-      router.push('/customize');
-    });
+    if (!response.ok) throw new Error('Generation failed');
+    return await response.json();
   };
 
+  useEffect(() => {
+    const generateAndSaveStrip = async () => {
+      const neededPhotos = countPhotoCells(layout);
+      if (photos.length === neededPhotos && neededPhotos > 0) {
+        const { stripUrl } = await generateStrip({
+          photos: photos,
+          layout: layout
+        });
+        localStorage.setItem('photoStrip', stripUrl);
+        router.push('/customize');
+      }
+    };
+    
+    generateAndSaveStrip();
+  }, [photos, layout, router]);
 
-  // Take multiple photos based on layout
   const takeMultiplePhotos = async () => {
     const numPhotos = countPhotoCells(layout);
+    setIsCountingDown(true);
+    
     for (let i = 0; i < numPhotos; i++) {
-      await new Promise(resolve => {
-        setIsCountingDown(true);
-        let localCount = 3;
+      let localCount = 3;
+      setCountDown(localCount);
+      
+      // Countdown for this photo
+      while (localCount > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        localCount -= 1;
         setCountDown(localCount);
-        const timer = setInterval(() => {
-          localCount -= 1;
-          setCountDown(localCount);
-          if (localCount <= 0) {
-            clearInterval(timer);
-            capturePhoto();
-            setIsCountingDown(false);
-            setCountDown(3);
-            resolve();
-          }
-        }, 1000);
-      });
+      }
+      
+      // Take the photo
+      capturePhoto();
+      
+      // Short pause between photos if not the last one
       if (i < numPhotos - 1) {
-        await new Promise(res => setTimeout(res, 0));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
+    
+    setIsCountingDown(false);
+    setCountDown(3);
   };
 
   // Clean up camera on unmount
@@ -209,14 +166,9 @@ export default function PhotoBooth() {
 
   return (
     <div className='flex flex-col min-h-screen bg-neutral-100 text-gray-800'>
-      <nav className='w-full bg-indigo-500 flex'>
-        <div className='mx-auto max-w-6xl w-full py-3 px-8 flex'>
-          <h1 className='text-4xl font-bold text-white max-w-2xl'>FotoFoto</h1>
-        </div>
-      </nav>
+      <Header />
       <main className='flex-1 p-8 max-w-6xl mx-auto w-full'>
         <div className="flex flex-col md:flex-row gap-8 items-start justify-center w-full">
-          {/* Camera View */}
           <div className="flex-1 min-w-[320px] max-w-2xl">
             <CameraView
               isCameraOn={isCameraOn}
@@ -232,7 +184,6 @@ export default function PhotoBooth() {
             <canvas ref={canvasRef} className='hidden'/>
             <canvas ref={stripCanvasRef} className='hidden' />
           </div>
-          {/* Options Panel */}
           <div className="w-full md:w-96 flex flex-col gap-6 bg-white rounded-lg border border-neutral-300 p-6">
             {error && (
               <div className='p-4 bg-red-100 text-red-800 rounded mb-2 text-center'>
@@ -249,7 +200,6 @@ export default function PhotoBooth() {
               setTopMargin={setTopMargin}
               setBottomMargin={setBottomMargin}
             />
-            <CustomTextInput customText={customText} setCustomText={setCustomText} />
           </div>
         </div>
       </main>
