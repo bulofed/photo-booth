@@ -111,7 +111,18 @@ export default function PhotoBooth() {
           photos: photos,
           layout: layout
         });
-        localStorage.setItem('photoStrip', stripUrl);
+        localStorage.setItem('photoStripData', JSON.stringify({
+          stripUrl,
+          photos,
+          layout,
+          dimensions: {
+            padding,
+            topMargin,
+            bottomMargin,
+            backgroundColor: '#ffffff',
+            photoBorderColor: '#dddddd'
+          }
+        }));
         router.push('/customize');
       }
     };
